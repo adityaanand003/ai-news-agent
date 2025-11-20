@@ -1,0 +1,257 @@
+{
+  "name": "post_automation",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        480,
+        160
+      ],
+      "id": "7be9ceb8-d84f-4f12-b1f8-e7984dcedfc0",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "url": "https://newsdata.io/api/1/latest",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "pub_4ab840cd477b4a04a2c5802cd8321dbe"
+            },
+            {
+              "name": "qInTitle",
+              "value": "drone OR UAV OR DGCA"
+            },
+            {
+              "name": "language",
+              "value": "en"
+            },
+            {
+              "name": "image",
+              "value": "1"
+            },
+            {
+              "name": "category",
+              "value": "technology,business"
+            },
+            {
+              "name": "timezone",
+              "value": "asia/kolkata"
+            },
+            {
+              "name": "size",
+              "value": "5"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        704,
+        160
+      ],
+      "id": "4616be13-64b3-4c23-8aac-77ed1c249eb7",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "results",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        928,
+        160
+      ],
+      "id": "c5ffb1ff-d880-4a58-a368-e500b837d7ad",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash-lite",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash-lite"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are a strict and professional news editor for a drone technology channel.\nYour task is to write a LinkedIn post based ONLY on the provided input data.\n\n### INPUT DATA:\nTitle: {{ $json.title }}\nDescription: {{ $json.description }}\nLink: {{ $json.link }}\nImage: {{ $json.image_url }}\nDate: {{ $json.pubDate }}\n\n### STRICT GUIDELINES (NO HALLUCINATIONS):\n1. Use ONLY the information in the \"Title\" and \"Description\". Do not invent facts, names, or dates.\n2. If the description is empty or too short, write a generic summary based on the Title.\n3. Tone: Professional, engaging, and informative.\n\n### OUTPUT FORMATTING:\n1. HOOK: Write 1 engaging sentence to grab attention.\n2. SUMMARY: Write exactly 2 sentences summarizing the news.\n3. HASHTAGS: Generate 3-5 relevant hashtags (e.g., #DroneTech, #UAV).\n4. CTA: Write a Call-to-Action pointing to the link.\n\n### REQUIRED JSON OUTPUT:\nYou must output a valid JSON object. Do not include markdown formatting (like ```json).\n\n{\n  \"hook\": \"Insert hook here\",\n  \"summary\": \"Insert summary here\",\n  \"hashtags\": \"#Tag1 #Tag2\",\n  \"cta\": \"Read the full story here: {{ $json.link }}\",\n  \"final_caption\": \"Insert the full combined post text here (Hook + \\n\\n + Summary + \\n\\n + Hashtags + \\n\\n + CTA)\",\n  \"image_url\": \"{{ $json.image_url }}\",\n  \"article_link\": \"{{ $json.link }}\",\n  \"pub_date\": \"{{ $json.pubDate }}\"\n}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        1152,
+        160
+      ],
+      "id": "1dafdcec-a8e0-4497-abfc-84a04daacd7e",
+      "name": "Message a model",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "TjLs3AIpRQtYGbH6",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "72744186-4016-4f25-8990-5d279bceb4ec",
+              "name": "data",
+              "value": "={{ JSON.parse($json.content.parts[0].text) }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1504,
+        160
+      ],
+      "id": "9be6bbeb-62f8-4b1b-96e0-98c874873f16",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.data.image_url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1728,
+        160
+      ],
+      "id": "49d4ee6c-22a7-4f38-9b46-c6476edf1d39",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "person": "Ve_QU2LaMO",
+        "text": "={{ $json.data.final_caption + '' }}",
+        "shareMediaCategory": "IMAGE",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.linkedIn",
+      "typeVersion": 1,
+      "position": [
+        1952,
+        160
+      ],
+      "id": "d20d8865-2d75-4466-bb45-070b9e7b18b5",
+      "name": "Create a post",
+      "credentials": {
+        "linkedInOAuth2Api": {
+          "id": "9ycPj2N8IBRgbR6U",
+          "name": "LinkedIn account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Create a post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "a6d06d90-2d56-4579-8bae-aa1404e494fa",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f1c5e395ca9c90e241418cf62e3d11f251456cabafac8197c346dc1663a9cd6c"
+  },
+  "id": "NTee1y1Dqqrbr1Wy",
+  "tags": []
+}
